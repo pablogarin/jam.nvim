@@ -1,5 +1,8 @@
 local function reset()
   package.loaded["jam.create"] = nil
+  vim.schedule = function(fn)
+    fn()
+  end
 end
 
 describe("T-02 | Project name prompt", function()
@@ -40,9 +43,37 @@ describe("T-02 | Project name prompt", function()
 
   it("a provided name is passed downstream", function()
     local captured_msg = nil
+    local input_n, select_n = 0, 0
     vim.ui.input = function(_, cb)
-      cb("MyProject")
+      input_n = input_n + 1
+      cb(input_n == 1 and "MyProject" or "")
     end
+    vim.ui.select = function(_, _, cb)
+      select_n = select_n + 1
+      -- build_tool=Maven, inject_main=No, git_init=No
+      cb(select_n == 1 and "Maven (default)" or "No")
+    end
+    package.loaded["jam.fs"] = {
+      ensure_project_dir = function()
+        return true
+      end,
+      scaffold_maven = function()
+        return true
+      end,
+      write_file = function()
+        return true
+      end,
+    }
+    package.loaded["jam.detect"] = {
+      find_java = function()
+        return "/usr/bin/java"
+      end,
+      find_java_version = function()
+        return 17
+      end,
+    }
+    vim.api.nvim_set_current_dir = function() end
+    vim.cmd.edit = function() end
     local orig = vim.notify
     vim.notify = function(msg, _)
       captured_msg = msg

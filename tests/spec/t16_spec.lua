@@ -12,6 +12,11 @@ local function reset()
   package.loaded["jam.create"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
+  vim.api.nvim_set_current_dir = function() end
+  vim.cmd.edit = function() end
+  vim.schedule = function(fn)
+    fn()
+  end
   cleanup()
 end
 

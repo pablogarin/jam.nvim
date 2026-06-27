@@ -4,6 +4,9 @@ local function reset()
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
   vim.cmd.edit = function() end
+  vim.schedule = function(fn)
+    fn()
+  end
 end
 
 -- Prompt order: input[1]=name, input[2]=location, select[1]=build tool,

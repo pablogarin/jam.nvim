@@ -9,6 +9,9 @@ local function reset()
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
   vim.cmd.edit = function() end
+  vim.schedule = function(fn)
+    fn()
+  end
 end
 
 -- Collect every (message, level) pair emitted during a test.
@@ -112,7 +115,7 @@ describe("T-18 | vim.notify() log levels", function()
   end)
 
   it("uses ERROR level when ensure_project_dir fails", function()
-    stub({ "myapp", "" }, { "Maven (default)", "No", "No" })
+    stub({ "myapp", "", "" }, { "Maven (default)", "No", "No" })
     package.loaded["jam.fs"] = {
       ensure_project_dir = function()
         return nil, "permission denied"

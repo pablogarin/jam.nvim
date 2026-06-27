@@ -255,103 +255,121 @@ function M.create()
 
     -- T-14: optional location override (shown before any side effects)
     local default_location = resolve_location(name)
-    prompt_location_override(default_location, function(loc_override)
-      -- T-04: resolve final project root
-      local location = resolve_location(name, loc_override)
+    vim.schedule(function()
+      prompt_location_override(default_location, function(loc_override)
+        -- T-04: resolve final project root
+        local location = resolve_location(name, loc_override)
 
-      -- T-05: validate parent permissions and create the directory
-      local ok5, err5 = require("jam.fs").ensure_project_dir(location)
-      if not ok5 then
-        vim.notify("[jam] " .. err5, vim.log.levels.ERROR)
-        return
-      end
+        -- T-12: select build tool
+        vim.schedule(function()
+          prompt_build_tool(function(build_tool)
+            -- T-13: toggles for entry point and VCS
+            vim.schedule(function()
+              prompt_inject_main(function(inject_main)
+                vim.schedule(function()
+                  prompt_git_init(function(do_git_init)
+                    -- T-14: optional package name override
+                    local default_pkg = infer_package(name)
+                    vim.schedule(function()
+                      prompt_package_override(default_pkg, function(pkg_override)
+                        -- All prompts done — now perform side effects
+                        vim.schedule(function()
+                          -- T-05: validate parent permissions and create the directory
+                          local ok5, err5 = require("jam.fs").ensure_project_dir(location)
+                          if not ok5 then
+                            vim.notify("[jam] " .. err5, vim.log.levels.ERROR)
+                            return
+                          end
 
-      -- T-06: detect JDK; warn but continue if absent
-      if not require("jam.detect").find_java() then
-        vim.notify("[jam] no JDK found — compile steps may fail", vim.log.levels.WARN)
-      end
+                          -- T-06: detect JDK; warn but continue if absent
+                          if not require("jam.detect").find_java() then
+                            vim.notify("[jam] no JDK found — compile steps may fail", vim.log.levels.WARN)
+                          end
 
-      -- T-12: select build tool
-      prompt_build_tool(function(build_tool)
-        -- T-13: toggles for entry point and VCS
-        prompt_inject_main(function(inject_main)
-          prompt_git_init(function(do_git_init)
-            -- T-14: optional package name override
-            local default_pkg = infer_package(name)
-            prompt_package_override(default_pkg, function(pkg_override)
-              -- T-07: resolve final package and path segment
-              local pkg = pkg_override or infer_package(name)
-              local pkg_path = package_to_path(pkg)
-              local java_version = require("jam.detect").find_java_version()
+                          -- T-07: resolve final package and path segment
+                          local pkg = pkg_override or infer_package(name)
+                          local pkg_path = package_to_path(pkg)
+                          local java_version = require("jam.detect").find_java_version()
 
-              -- T-08: source directory scaffolding (same layout for all build tools)
-              local ok8, err8 = require("jam.fs").scaffold_maven(location, pkg_path)
-              if not ok8 then
-                vim.notify("[jam] " .. err8, vim.log.levels.ERROR)
-                return
-              end
+                          -- T-08: source directory scaffolding (same layout for all build tools)
+                          local ok8, err8 = require("jam.fs").scaffold_maven(location, pkg_path)
+                          if not ok8 then
+                            vim.notify("[jam] " .. err8, vim.log.levels.ERROR)
+                            return
+                          end
 
-              -- T-09/T-15: write build file based on selection
-              if build_tool == "maven" then
-                local ok, err = require("jam.fs").write_file(location .. "/pom.xml", pom_xml(name, pkg, java_version))
-                if not ok then
-                  vim.notify("[jam] " .. err, vim.log.levels.ERROR)
-                  return
-                end
-              elseif build_tool == "gradle" then
-                local ok1, err1 =
-                  require("jam.fs").write_file(location .. "/build.gradle", build_gradle(pkg, java_version))
-                if not ok1 then
-                  vim.notify("[jam] " .. err1, vim.log.levels.ERROR)
-                  return
-                end
-                local ok2, err2 = require("jam.fs").write_file(location .. "/settings.gradle", settings_gradle(name))
-                if not ok2 then
-                  vim.notify("[jam] " .. err2, vim.log.levels.ERROR)
-                  return
-                end
-              end
-              -- "none" writes no build file
+                          -- T-09/T-15: write build file based on selection
+                          if build_tool == "maven" then
+                            local ok, err =
+                              require("jam.fs").write_file(location .. "/pom.xml", pom_xml(name, pkg, java_version))
+                            if not ok then
+                              vim.notify("[jam] " .. err, vim.log.levels.ERROR)
+                              return
+                            end
+                          elseif build_tool == "gradle" then
+                            local ok1, err1 =
+                              require("jam.fs").write_file(location .. "/build.gradle", build_gradle(pkg, java_version))
+                            if not ok1 then
+                              vim.notify("[jam] " .. err1, vim.log.levels.ERROR)
+                              return
+                            end
+                            local ok2, err2 =
+                              require("jam.fs").write_file(location .. "/settings.gradle", settings_gradle(name))
+                            if not ok2 then
+                              vim.notify("[jam] " .. err2, vim.log.levels.ERROR)
+                              return
+                            end
+                          end
+                          -- "none" writes no build file
 
-              -- T-10: Main.java (conditional on toggle)
-              if inject_main then
-                local main_path = location .. "/src/main/java/" .. pkg_path .. "/Main.java"
-                local ok10, err10 = require("jam.fs").write_file(main_path, main_java(pkg))
-                if not ok10 then
-                  vim.notify("[jam] " .. err10, vim.log.levels.ERROR)
-                  return
-                end
-              end
+                          -- T-10: Main.java (conditional on toggle)
+                          if inject_main then
+                            local main_path = location .. "/src/main/java/" .. pkg_path .. "/Main.java"
+                            local ok10, err10 = require("jam.fs").write_file(main_path, main_java(pkg))
+                            if not ok10 then
+                              vim.notify("[jam] " .. err10, vim.log.levels.ERROR)
+                              return
+                            end
+                          end
 
-              -- T-17: cd into root and open Main.java on success
-              local function finish()
-                vim.api.nvim_set_current_dir(location)
-                vim.notify(("[jam] project '%s' created at %s"):format(name, location), vim.log.levels.INFO)
-                if inject_main then
-                  vim.cmd.edit(location .. "/src/main/java/" .. pkg_path .. "/Main.java")
-                end
-              end
+                          -- T-17: cd into root and open Main.java on success
+                          local function finish()
+                            vim.api.nvim_set_current_dir(location)
+                            vim.notify(
+                              ("[jam] project '%s' created at %s"):format(name, location),
+                              vim.log.levels.INFO
+                            )
+                            if inject_main then
+                              vim.cmd.edit(location .. "/src/main/java/" .. pkg_path .. "/Main.java")
+                            end
+                          end
 
-              -- T-11: git init + .gitignore (conditional on toggle)
-              if do_git_init then
-                local _, gi_err = require("jam.fs").write_file(location .. "/.gitignore", GITIGNORE)
-                if gi_err then
-                  vim.notify("[jam] failed to write .gitignore: " .. gi_err, vim.log.levels.WARN)
-                end
-                require("jam.fs").git_init(location, function(git_ok)
-                  if not git_ok then
-                    vim.notify("[jam] git init failed (is git installed?)", vim.log.levels.WARN)
-                  end
-                  finish()
-                end)
-              else
-                finish()
-              end
-            end) -- prompt_package_override
-          end) -- prompt_git_init
-        end) -- prompt_inject_main
-      end) -- prompt_build_tool
-    end) -- prompt_location_override
+                          -- T-11: git init + .gitignore (conditional on toggle)
+                          if do_git_init then
+                            local _, gi_err = require("jam.fs").write_file(location .. "/.gitignore", GITIGNORE)
+                            if gi_err then
+                              vim.notify("[jam] failed to write .gitignore: " .. gi_err, vim.log.levels.WARN)
+                            end
+                            require("jam.fs").git_init(location, function(git_ok)
+                              if not git_ok then
+                                vim.notify("[jam] git init failed (is git installed?)", vim.log.levels.WARN)
+                              end
+                              finish()
+                            end)
+                          else
+                            finish()
+                          end
+                        end) -- vim.schedule (side effects)
+                      end) -- prompt_package_override
+                    end) -- vim.schedule
+                  end) -- prompt_git_init
+                end) -- vim.schedule
+              end) -- prompt_inject_main
+            end) -- vim.schedule
+          end) -- prompt_build_tool
+        end) -- vim.schedule
+      end) -- prompt_location_override
+    end) -- vim.schedule
   end) -- prompt_name
 end
 

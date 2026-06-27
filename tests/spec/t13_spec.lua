@@ -43,6 +43,9 @@ local function reset()
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
   vim.cmd.edit = function() end
+  vim.schedule = function(fn)
+    fn()
+  end
 end
 
 -- select order: 1=build tool, 2=inject Main.java, 3=git init
