@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="assets/logo.png" alt="jam.nvim" width="100%"/>
+  <img src="assets/logo_banner.png" alt="jam.nvim" width="100%"/>
 </p>
 
 <p align="center">
