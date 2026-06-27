@@ -1,18 +1,14 @@
--- Helper: stub all three vim.ui.select calls in sequence.
--- `choices` is a list indexed by call order.
-local function stub_selects(choices)
-  local call = 0
-  vim.ui.select = function(_, _, cb)
-    call = call + 1
-    cb(choices[call])
-  end
-end
-
 local function full_stub(select_choices)
-  vim.ui.input = function(_, cb)
-    cb("myapp")
-  end
-  stub_selects(select_choices)
+  local select_n = 0
+  package.loaded["jam.ui"] = {
+    input = function(_, cb)
+      cb("myapp")
+    end,
+    select = function(_, _, cb)
+      select_n = select_n + 1
+      cb(select_choices[select_n])
+    end,
+  }
   package.loaded["jam.fs"] = {
     ensure_project_dir = function()
       return true
@@ -39,6 +35,7 @@ end
 
 local function reset()
   package.loaded["jam.create"] = nil
+  package.loaded["jam.ui"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end

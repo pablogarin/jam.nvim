@@ -1,3 +1,7 @@
+-- Capture real functions before any mock runs so we can restore them after.
+local _real_buf_get_lines = vim.api.nvim_buf_get_lines
+local _real_win_set_cursor = vim.api.nvim_win_set_cursor
+
 local function reset()
   package.loaded["jam.test"] = nil
   package.loaded["jam.fs"] = nil
@@ -136,3 +140,8 @@ describe("T-26 | generate_test — file creation", function()
     expect(got_level).to_be(vim.log.levels.ERROR)
   end)
 end)
+
+-- Restore real functions so subsequent spec files see the correct implementations.
+-- describe() executes synchronously, so all T-26 tests have finished by this point.
+vim.api.nvim_buf_get_lines = _real_buf_get_lines
+vim.api.nvim_win_set_cursor = _real_win_set_cursor

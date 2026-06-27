@@ -1,5 +1,6 @@
 local function reset()
   package.loaded["jam.build"] = nil
+  package.loaded["jam.ui"] = nil
 end
 
 local function resolve(root, files, found_java)
@@ -44,29 +45,35 @@ describe("T-22 | Main class resolution", function()
     expect(fqcn).to_be("org.example.myapp.Main")
   end)
 
-  it("falls back to vim.ui.input when neither source provides a class", function()
+  it("falls back to jam.ui.input when neither source provides a class", function()
     local prompted = false
-    vim.ui.input = function(_, cb)
-      prompted = true
-      cb("io.custom.Runner")
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        prompted = true
+        cb("io.custom.Runner")
+      end,
+    }
     local fqcn = resolve("/proj", {}, nil)
     expect(prompted).to_be_true()
     expect(fqcn).to_be("io.custom.Runner")
   end)
 
   it("returns nil when prompt is cancelled (nil input)", function()
-    vim.ui.input = function(_, cb)
-      cb(nil)
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        cb(nil)
+      end,
+    }
     local fqcn = resolve("/proj", {}, nil)
     expect(fqcn).to_be_nil()
   end)
 
   it("returns nil when prompt is submitted empty", function()
-    vim.ui.input = function(_, cb)
-      cb("")
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        cb("")
+      end,
+    }
     local fqcn = resolve("/proj", {}, nil)
     expect(fqcn).to_be_nil()
   end)

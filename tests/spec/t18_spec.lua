@@ -5,6 +5,7 @@
 
 local function reset()
   package.loaded["jam.create"] = nil
+  package.loaded["jam.ui"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
@@ -69,14 +70,16 @@ end
 --               select[2]=inject_main, select[3]=git_init, input[3]=package
 local function stub(inputs, selects)
   local in_n, sel_n = 0, 0
-  vim.ui.input = function(_, cb)
-    in_n = in_n + 1
-    cb(inputs[in_n])
-  end
-  vim.ui.select = function(_, _, cb)
-    sel_n = sel_n + 1
-    cb(selects[sel_n])
-  end
+  package.loaded["jam.ui"] = {
+    input = function(_, cb)
+      in_n = in_n + 1
+      cb(inputs[in_n])
+    end,
+    select = function(_, _, cb)
+      sel_n = sel_n + 1
+      cb(selects[sel_n])
+    end,
+  }
 end
 
 describe("T-18 | vim.notify() log levels", function()

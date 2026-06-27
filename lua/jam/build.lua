@@ -102,7 +102,7 @@ function M.build(callback)
 end
 
 ---Pure main-class resolution logic — injectable for unit tests.
----Resolution order: .jam.json mainClass → first Main.java scan → vim.ui.input.
+---Resolution order: .jam.json mainClass → first Main.java scan → jam.ui.input.
 ---@param root string Project root path.
 ---@param callback fun(fqcn: string|nil) Called with the FQCN, or nil if cancelled.
 ---@param read_fn? fun(path: string): string|nil Returns file content or nil.
@@ -171,7 +171,7 @@ function M._resolve_main_class(root, callback, read_fn, find_fn)
   end
 
   -- 3. Prompt the user
-  vim.ui.input({ prompt = "Main class (fully qualified): " }, function(input)
+  require("jam.ui").input({ prompt = "Main class (fully qualified): " }, function(input)
     if input == nil or input == "" then
       callback(nil)
     else

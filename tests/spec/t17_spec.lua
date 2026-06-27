@@ -4,14 +4,16 @@
 --               select[2]=inject_main, select[3]=git_init, input[3]=package
 local function wizard_stub(inputs, selects)
   local input_n, select_n = 0, 0
-  vim.ui.input = function(_, cb)
-    input_n = input_n + 1
-    cb(inputs[input_n])
-  end
-  vim.ui.select = function(_, _, cb)
-    select_n = select_n + 1
-    cb(selects[select_n])
-  end
+  package.loaded["jam.ui"] = {
+    input = function(_, cb)
+      input_n = input_n + 1
+      cb(inputs[input_n])
+    end,
+    select = function(_, _, cb)
+      select_n = select_n + 1
+      cb(selects[select_n])
+    end,
+  }
 end
 
 local function fs_stub()
@@ -44,6 +46,7 @@ end
 
 local function reset()
   package.loaded["jam.create"] = nil
+  package.loaded["jam.ui"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end

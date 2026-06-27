@@ -10,6 +10,7 @@ end
 
 local function reset()
   package.loaded["jam.create"] = nil
+  package.loaded["jam.ui"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
@@ -26,14 +27,16 @@ local function stub_defaults(project_name, build_tool_label)
   local input_n, select_n = 0, 0
   local inputs = { project_name, tmp .. "/" .. project_name, "" } -- name, explicit location, empty pkg
   local selects = { build_tool_label or "Maven (default)", "Yes", "Yes" }
-  vim.ui.input = function(_, cb)
-    input_n = input_n + 1
-    cb(inputs[input_n])
-  end
-  vim.ui.select = function(_, _, cb)
-    select_n = select_n + 1
-    cb(selects[select_n])
-  end
+  package.loaded["jam.ui"] = {
+    input = function(_, cb)
+      input_n = input_n + 1
+      cb(inputs[input_n])
+    end,
+    select = function(_, _, cb)
+      select_n = select_n + 1
+      cb(selects[select_n])
+    end,
+  }
 end
 
 describe("T-16 | End-to-end: Maven project creation", function()

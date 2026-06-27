@@ -176,7 +176,7 @@ local LABEL_TO_TOOL = {
 ---Calls `callback` with "maven", "gradle", or "none". Cancellation silently returns.
 ---@param callback fun(tool: "maven"|"gradle"|"none")
 local function prompt_build_tool(callback)
-  vim.ui.select(BUILD_TOOL_ITEMS, { prompt = "Build tool:" }, function(choice)
+  require("jam.ui").select(BUILD_TOOL_ITEMS, { prompt = "Build tool:" }, function(choice)
     if choice == nil then
       return
     end
@@ -189,7 +189,7 @@ end
 ---@param default string The resolved default path shown as a hint.
 ---@param callback fun(override: string|nil)
 local function prompt_location_override(default, callback)
-  vim.ui.input({ prompt = ("Project location (Enter for '%s'): "):format(default) }, function(input)
+  require("jam.ui").input({ prompt = ("Project location (Enter for '%s'): "):format(default) }, function(input)
     if input == nil then
       return
     end
@@ -202,7 +202,7 @@ end
 ---@param default string The inferred default package shown as a hint.
 ---@param callback fun(override: string|nil)
 local function prompt_package_override(default, callback)
-  vim.ui.input({ prompt = ("Package name (Enter for '%s'): "):format(default) }, function(input)
+  require("jam.ui").input({ prompt = ("Package name (Enter for '%s'): "):format(default) }, function(input)
     if input == nil then
       return
     end
@@ -213,7 +213,7 @@ end
 ---T-13: Ask whether to inject Main.java.
 ---@param callback fun(inject: boolean)
 local function prompt_inject_main(callback)
-  vim.ui.select({ "Yes", "No" }, { prompt = "Inject Main.java?" }, function(choice)
+  require("jam.ui").select({ "Yes", "No" }, { prompt = "Inject Main.java?" }, function(choice)
     if choice == nil then
       return
     end
@@ -224,7 +224,7 @@ end
 ---T-13: Ask whether to initialise a git repository.
 ---@param callback fun(init: boolean)
 local function prompt_git_init(callback)
-  vim.ui.select({ "Yes", "No" }, { prompt = "Initialise git repository?" }, function(choice)
+  require("jam.ui").select({ "Yes", "No" }, { prompt = "Initialise git repository?" }, function(choice)
     if choice == nil then
       return
     end
@@ -236,7 +236,7 @@ end
 ---Cancellation (nil) silently returns without calling `callback`.
 ---@param callback fun(raw_name: string)
 local function prompt_name(callback)
-  vim.ui.input({ prompt = "Project name: " }, function(input)
+  require("jam.ui").input({ prompt = "Project name: " }, function(input)
     if input == nil then
       return
     end

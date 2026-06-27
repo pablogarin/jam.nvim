@@ -1,5 +1,6 @@
 local function reset()
   package.loaded["jam.create"] = nil
+  package.loaded["jam.ui"] = nil
   package.loaded["jam.fs"] = nil
   package.loaded["jam.detect"] = nil
   vim.api.nvim_set_current_dir = function() end
@@ -40,16 +41,18 @@ describe("T-12 | Build tool selection prompt", function()
     expect(require("jam.create")._LABEL_TO_TOOL["No Build Tools"]).to_be("none")
   end)
 
-  it("create() calls vim.ui.select after vim.ui.input", function()
+  it("create() calls jam.ui.select after jam.ui.input", function()
     local calls = {}
-    vim.ui.input = function(_, cb)
-      table.insert(calls, "input")
-      cb("myapp")
-    end
-    vim.ui.select = function(_, _, cb)
-      table.insert(calls, "select")
-      cb(nil) -- cancel to stop the flow early
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        table.insert(calls, "input")
+        cb("myapp")
+      end,
+      select = function(_, _, cb)
+        table.insert(calls, "select")
+        cb(nil) -- cancel to stop the flow early
+      end,
+    }
     -- stub out downstream modules
     package.loaded["jam.fs"] = {
       ensure_project_dir = function()
@@ -68,12 +71,14 @@ describe("T-12 | Build tool selection prompt", function()
 
   it("cancelling the build tool prompt stops the wizard", function()
     local notified = false
-    vim.ui.input = function(_, cb)
-      cb("myapp")
-    end
-    vim.ui.select = function(_, _, cb)
-      cb(nil) -- user cancels
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        cb("myapp")
+      end,
+      select = function(_, _, cb)
+        cb(nil) -- user cancels
+      end,
+    }
     package.loaded["jam.fs"] = {
       ensure_project_dir = function()
         return true
@@ -97,12 +102,14 @@ describe("T-12 | Build tool selection prompt", function()
 
   it("selecting 'No Build Tools' skips pom.xml generation", function()
     local wrote_pom = false
-    vim.ui.input = function(_, cb)
-      cb("myapp")
-    end
-    vim.ui.select = function(_, _, cb)
-      cb("No Build Tools")
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        cb("myapp")
+      end,
+      select = function(_, _, cb)
+        cb("No Build Tools")
+      end,
+    }
     package.loaded["jam.fs"] = {
       ensure_project_dir = function()
         return true
@@ -134,12 +141,14 @@ describe("T-12 | Build tool selection prompt", function()
 
   it("selecting 'Maven (default)' writes pom.xml", function()
     local wrote_pom = false
-    vim.ui.input = function(_, cb)
-      cb("myapp")
-    end
-    vim.ui.select = function(_, _, cb)
-      cb("Maven (default)")
-    end
+    package.loaded["jam.ui"] = {
+      input = function(_, cb)
+        cb("myapp")
+      end,
+      select = function(_, _, cb)
+        cb("Maven (default)")
+      end,
+    }
     package.loaded["jam.fs"] = {
       ensure_project_dir = function()
         return true
