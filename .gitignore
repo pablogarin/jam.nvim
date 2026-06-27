@@ -1,0 +1,19 @@
+# Test artifacts from generated Java projects
+MyProject/
+**/target/
+**/*.class
+**/*.jar
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Editor
+.idea/
+*.iml
+.vscode/
+
+# Neovim swap/undo files
+*.swp
+*.swo
+*~

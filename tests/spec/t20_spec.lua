@@ -1,0 +1,62 @@
+local function reset()
+  package.loaded["jam.output"] = nil
+end
+
+describe("T-20 | Output scratch buffer", function()
+  before_each(reset)
+
+  it("get_or_create returns a valid buffer", function()
+    local buf = require("jam.output").get_or_create("[jam:build]")
+    expect(vim.api.nvim_buf_is_valid(buf)).to_be_true()
+  end)
+
+  it("get_or_create sets buftype to nofile", function()
+    local buf = require("jam.output").get_or_create("[jam:build]")
+    expect(vim.bo[buf].buftype).to_be("nofile")
+  end)
+
+  it("get_or_create returns the same buffer number on a second call", function()
+    local out = require("jam.output")
+    local buf1 = out.get_or_create("[jam:build]")
+    local buf2 = out.get_or_create("[jam:build]")
+    expect(buf1).to_be(buf2)
+  end)
+
+  it("different names produce different buffers", function()
+    local out = require("jam.output")
+    local b1 = out.get_or_create("[jam:build]")
+    local b2 = out.get_or_create("[jam:test]")
+    expect(b1 == b2).to_be(false)
+  end)
+
+  it("append adds lines to the buffer", function()
+    local out = require("jam.output")
+    local buf = out.get_or_create("[jam:append-test]")
+    out.clear(buf)
+    out.append(buf, { "line one", "line two" })
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    expect(lines[1]).to_be("line one")
+    expect(lines[2]).to_be("line two")
+  end)
+
+  it("append is additive across multiple calls", function()
+    local out = require("jam.output")
+    local buf = out.get_or_create("[jam:additive-test]")
+    out.clear(buf)
+    out.append(buf, { "a" })
+    out.append(buf, { "b" })
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    expect(#lines).to_be(2)
+  end)
+
+  it("clear leaves the buffer visually empty (one blank line)", function()
+    local out = require("jam.output")
+    local buf = out.get_or_create("[jam:clear-test]")
+    out.append(buf, { "some content" })
+    out.clear(buf)
+    local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
+    -- Neovim buffers always retain one line; clear resets it to blank.
+    expect(#lines).to_be(1)
+    expect(lines[1]).to_be("")
+  end)
+end)
