@@ -62,6 +62,11 @@
 - As a user, if I run `:Jam imports` with jdtls attached, the result should be unused imports removed and the import block sorted. → T-29
 - As a user, if I run `:Jam imports` without jdtls attached, the result should be a clear ERROR notification explaining why the feature is unavailable. → T-29
 
+**Floating UI**
+- As a user, when any jam.nvim step asks for text input, the result should be a centered floating window that works regardless of which command-line UI plugin I have installed (e.g. noice.nvim). → T-30, T-32, T-33
+- As a user, when any jam.nvim step presents a list of choices, the result should be a centered floating window I can navigate with `j`/`k` and confirm with `<CR>`, without using the mouse. → T-31, T-32
+- As a user, if I press `<Esc>` at any floating prompt, the result should be the wizard cancelling silently with no files written or commands executed. → T-30, T-31
+
 ---
 
 ## Tasks
@@ -241,3 +246,38 @@
 - If either check fails, emit ERROR with a specific reason ("not a Java file" or "jdtls not attached — is nvim-jdtls installed and are you inside a project root?").
 - If both pass, execute the `java.action.organizeImports` command via `vim.lsp.buf.code_action` filtered to that action title.
 - Tests: code action triggered when jdtls client present; ERROR emitted (with correct reason) when filetype is wrong; ERROR emitted when no jdtls client attached.
+
+### T-30 — Floating input dialog (FR-7.1)
+- Create `lua/jam/ui.lua` with `M.input(opts, callback)`.
+  - `opts` follows the same shape as `vim.ui.input`: `{ prompt = "..." }`.
+  - Opens a centered floating window using `vim.api.nvim_open_win` with `relative = "editor"`, `style = "minimal"`, and `border = "rounded"`.
+  - The prompt text is shown as the window's border title (`title` option).
+  - The window contains a single scratch buffer opened in insert mode.
+  - `<CR>` in insert mode: reads the buffer's first line, closes the window, calls `callback(text)`.
+  - `<Esc>` in insert or normal mode: closes the window, calls `callback(nil)`.
+  - Window closes itself (no lingering floating windows on cancel or confirm).
+- Expose `M._open_input_win(opts)` returning `{ buf, win }` for unit tests.
+- Tests: window is created with `relative = "editor"`; border is `"rounded"`; `<CR>` keymap calls callback with text; `<Esc>` keymap calls callback with nil; prompt text appears as title; second call after close does not error.
+
+### T-31 — Floating selection dialog (FR-7.2)
+- Add `M.select(items, opts, callback)` to `lua/jam/ui.lua`.
+  - `items` and `opts` follow the same shape as `vim.ui.select`.
+  - Opens a centered floating window sized to fit the longest item plus a one-column margin.
+  - Each item occupies one line; the window height equals the number of items.
+  - The cursor starts on the first item; `CursorLine` highlighting shows the current selection.
+  - Buffer-local normal-mode keymaps: `j` / `<Down>` → move cursor down (no wrap past last); `k` / `<Up>` → move cursor up (no wrap before first); `<CR>` → read the line under the cursor, close window, call `callback(item)`; `<Esc>` / `q` → close window, call `callback(nil)`.
+  - The window is non-modifiable (`modifiable = false` after content is written).
+- Expose `M._open_select_win(items, opts)` returning `{ buf, win }` for unit tests.
+- Tests: window contains all items as lines; cursor starts on line 1; `<CR>` keymap triggers callback with the correct item; `<Esc>` triggers callback with nil; `q` triggers callback with nil; window width fits the longest item.
+
+### T-32 — Wire create wizard to `jam.ui` (FR-7.1, FR-7.2)
+- In `lua/jam/create.lua`, replace every `vim.ui.input(...)` call with `require("jam.ui").input(...)`.
+- Replace every `vim.ui.select(...)` call with `require("jam.ui").select(...)`.
+- Keep the existing `vim.schedule` wrappers — floating windows still benefit from yielding between prompts so the previous window fully closes before the next opens.
+- In all affected create-wizard test specs (t02, t12, t13, t14, t15, t16, t17, t18): replace `vim.ui.input` / `vim.ui.select` mock targets with stubs on `package.loaded["jam.ui"]` instead.
+- Tests (in existing specs): wizard reaches completion when `jam.ui.input` and `jam.ui.select` are stubbed; cancellation at each prompt still aborts cleanly.
+
+### T-33 — Wire main class prompt to `jam.ui` (FR-7.1)
+- In `lua/jam/build.lua`, replace the `vim.ui.input(...)` call inside `_resolve_main_class` with `require("jam.ui").input(...)`.
+- In `tests/spec/t22_spec.lua`: replace the `vim.ui.input` mock target with a stub on `package.loaded["jam.ui"]`.
+- Tests: prompt-fallback path calls `jam.ui.input`; cancellation (nil) and empty-string submission still return nil from `resolve_main_class`.

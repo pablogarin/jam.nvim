@@ -221,6 +221,20 @@ These requirements govern IDE-grade language intelligence — completions, auto-
 
 ---
 
+### 3.7 Phase 7: Floating UI
+
+#### `FR-7.1: Floating Input Dialog`
+* **Description**: Every text prompt in jam.nvim (project name, location, package name, main class) is presented in a centered floating window with a rounded border, completely bypassing the native command-line input (`vim.ui.input`) and any third-party overrides such as noice.nvim.
+* **Keyboard contract**: The window opens in insert mode. `<CR>` confirms the input and closes the window; `<Esc>` cancels and closes the window with no side effects.
+* **Implementation**: `lua/jam/ui.lua` exposes `M.input(opts, callback)` with the same signature as `vim.ui.input` so it can be used as a drop-in replacement inside jam modules.
+
+#### `FR-7.2: Floating Selection Dialog`
+* **Description**: Every selection prompt (build tool, yes/no toggles) is presented in a centered floating window listing the available options, one per line, with the first item highlighted. No mouse interaction is required.
+* **Keyboard contract**: `j` / `<Down>` moves the highlight down; `k` / `<Up>` moves it up. `<CR>` confirms the highlighted item; `<Esc>` or `q` cancels. Navigation wraps at the top and bottom of the list.
+* **Implementation**: `M.select(items, opts, callback)` in `lua/jam/ui.lua`, with the same signature as `vim.ui.select`.
+
+---
+
 ## 4. Platform Implementation Matrix
 This matrix maps how the minimalist wizard's functional lifecycle processes user interactions versus automated fallback values:
 
@@ -241,4 +255,6 @@ This matrix maps how the minimalist wizard's functional lifecycle processes user
 | **`FR-6.1`** | nvim-jdtls presence | None required | Detected automatically; single WARN per session if absent, no silent failure |
 | **`FR-6.2`** | LSP Attachment | None required | Auto-attaches jdtls on `FileType java` inside a project root; skipped otherwise |
 | **`FR-6.3`** | Completions & Imports | `:Jam imports` for organise | Completions + import insertion via standard LSP; classpath resolved by jdtls itself |
+| **`FR-7.1`** | Floating Input | Keyboard: `<CR>` confirm, `<Esc>` cancel | Replaces `vim.ui.input`; centered floating window, insert mode, rounded border |
+| **`FR-7.2`** | Floating Selection | Keyboard: `j`/`k` navigate, `<CR>` confirm, `<Esc>`/`q` cancel | Replaces `vim.ui.select`; centered floating window, first item pre-highlighted |
 
