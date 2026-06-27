@@ -1,4 +1,4 @@
-# Java Administration — User Stories & Tasks
+# Java Application Manager — User Stories & Tasks
 
 ## User Stories
 

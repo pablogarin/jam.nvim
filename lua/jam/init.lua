@@ -64,7 +64,7 @@ function M.setup(opts)
     complete = function(arglead)
       return complete(arglead)
     end,
-    desc = "Java administration for Neovim",
+    desc = "Java Application Manager for Neovim",
   })
 
   vim.api.nvim_create_autocmd("FileType", {

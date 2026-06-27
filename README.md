@@ -3,7 +3,7 @@
 </p>
 
 <p align="center">
-  <strong>Java Administration for Neovim</strong><br/>
+  <strong>Java Application Manager for Neovim</strong><br/>
   Scaffold, build, run, test, and fix imports — without leaving your editor.
 </p>
 
@@ -19,7 +19,7 @@
 
 ## Overview
 
-**jam.nvim** is a Neovim plugin that manages the full Java development lifecycle from inside the editor. It handles project scaffolding, compilation, running, test generation, and import organisation — all driven by a single `:Jam` command with no external tooling required beyond your JDK and build tool.
+**jam.nvim** (Java Application Manager) is a Neovim plugin that manages the full Java development lifecycle from inside the editor. It handles project scaffolding, compilation, running, test generation, and import organisation — all driven by a single `:Jam` command with no external tooling required beyond your JDK and build tool.
 
 - **Scaffold** a Maven or Gradle project with a single command
 - **Build** with `mvn compile` / `gradle classes` / `javac`, output streamed to a scratch buffer
