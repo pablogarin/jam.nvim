@@ -227,6 +227,7 @@ function M.run()
 
       local buf = output.get_or_create("[jam:build]")
       output.clear(buf)
+      output.open(buf)
 
       local cmd, args = M._run_argv(ctx.tool, ctx.root, fqcn)
       local stdout = vim.uv.new_pipe(false)

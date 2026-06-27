@@ -67,6 +67,12 @@
 - As a user, when any jam.nvim step presents a list of choices, the result should be a centered floating window I can navigate with `j`/`k` and confirm with `<CR>`, without using the mouse. → T-31, T-32
 - As a user, if I press `<Esc>` at any floating prompt, the result should be the wizard cancelling silently with no files written or commands executed. → T-30, T-31
 
+**Output Dialog**
+- As a developer, when I run `:Jam build`, `:Jam run`, or `:Jam test`, the result should be output streamed into a centered floating window so my editor layout is never disrupted. → T-35
+- As a developer, when build or test output contains raw ANSI color codes, the result should be clean readable text with no escape sequences visible in the buffer. → T-34
+- As a developer, as a command streams output, the result should be the window automatically scrolling to show the latest lines without me having to scroll manually. → T-35
+- As a developer, when I press `q` or `<Esc>` in the output window, the result should be the float closing and my cursor returning to the previous buffer. → T-35
+
 ---
 
 ## Tasks
@@ -281,3 +287,22 @@
 - In `lua/jam/build.lua`, replace the `vim.ui.input(...)` call inside `_resolve_main_class` with `require("jam.ui").input(...)`.
 - In `tests/spec/t22_spec.lua`: replace the `vim.ui.input` mock target with a stub on `package.loaded["jam.ui"]`.
 - Tests: prompt-fallback path calls `jam.ui.input`; cancellation (nil) and empty-string submission still return nil from `resolve_main_class`.
+
+### T-34 — ANSI escape code stripping (FR-8.2)
+- Add a private `strip_ansi(s)` function to `lua/jam/output.lua`.
+  - Removes all ANSI escape sequences of the form `ESC [ <params> <letter>` using the pattern `\27%[[0-9;]*[A-Za-z]`.
+  - Also strips bare carriage-return characters (`\r`).
+- Apply `strip_ansi` to every raw data chunk in `M.append()` before splitting by newline and writing to the buffer.
+- Tests: a string with embedded SGR sequences is stored without them; a string with `\r\n` line endings is normalised; plain text passes through unchanged.
+
+### T-35 — Floating output window (FR-8.1)
+- Update `M.open(buf)` in `lua/jam/output.lua` to open a centered floating window instead of a bottom split:
+  - Width: `math.floor(vim.o.columns * 0.8)`, Height: `math.floor(vim.o.lines * 0.8)`, minimum 20 lines / 40 columns.
+  - `relative = "editor"`, `border = "rounded"`, `title` set to `" <buf_name> "`, `title_pos = "center"`.
+  - After opening, set `modifiable = false` on the buffer so the user cannot accidentally type into it. `M.clear()` and `M.append()` temporarily re-enable `modifiable` around their writes.
+  - Buffer-local normal-mode keymaps `q` and `<Esc>` close the float.
+  - The module holds a module-level `_wins` table (`{ [buf] = win }`) mapping each buffer to its current window. A call to `M.open(buf)` when `_wins[buf]` is already a valid window is a no-op.
+- Add `M.scroll_to_end(buf)` that moves the cursor of `_wins[buf]` to the last line of the buffer if the window is valid.
+- Update `M.append()` to call `M.scroll_to_end(buf)` after each write so the window auto-follows streaming output.
+- In `lua/jam/build.lua`'s `M.run()`, add `output.open(buf)` before the run-phase spawn so the window is (re-)shown when run output begins, in case the user closed it during the build phase.
+- Tests: `M.open()` creates a window with `relative = "editor"`; window has `border = "rounded"`; title contains the buffer name; `q` closes the window and clears `_wins[buf]`; a second `M.open()` call does not open a duplicate; `M.scroll_to_end()` positions the cursor on the last line; `M.scroll_to_end()` is a no-op when the window has been closed; `M.append()` triggers auto-scroll.

@@ -221,6 +221,25 @@ These requirements govern IDE-grade language intelligence — completions, auto-
 
 ---
 
+### 3.8 Phase 8: Output Dialog
+
+These requirements govern how build, run, and test output is presented in the editor.
+
+#### `FR-8.1: Output Floating Window`
+* **Description**: The streaming output from `:Jam build`, `:Jam run`, and `:Jam test` is displayed in a centered floating window rather than a bottom split, leaving the user's editor layout undisturbed.
+* **Window specifications**: Width and height approximately 80% of the editor dimensions; `border = "rounded"`; window title equals the buffer name (e.g., `[jam:build]` or `[jam:test]`).
+* **Keyboard contract**: `q` and `<Esc>` close the float. Standard Neovim normal-mode scrolling (`j`/`k`, `G`, `Ctrl-d`/`Ctrl-u`) works without restriction. The window auto-scrolls to the last line after each chunk of output arrives.
+* **Reuse**: If the output window is already visible when the same command is invoked again, it is reused rather than duplicated.
+* **Implementation**: `M.open(buf)` in `lua/jam/output.lua` opens the floating window and tracks the window handle per buffer (a `wins` table keyed by buffer number) to enforce the single-instance rule.
+
+#### `FR-8.2: ANSI Escape Code Stripping`
+* **Description**: Raw ANSI SGR color sequences emitted by Maven or Gradle (e.g., `ESC[1;34m`, `ESC[m`) are stripped before output is written to the buffer, ensuring text is always clean and readable.
+* **Root cause**: `vim.uv.new_pipe(false)` creates a non-TTY pipe. Some Maven/Gradle logging configurations emit ANSI sequences regardless of the detected terminal type.
+* **Scope**: All sequences of the form `ESC [ <params> <letter>` and bare carriage-return characters (`\r`) are removed. All other content is written verbatim.
+* **Implementation**: A private `strip_ansi(s)` function in `lua/jam/output.lua`, applied to every raw data chunk in `M.append()` before splitting by newline.
+
+---
+
 ### 3.7 Phase 7: Floating UI
 
 #### `FR-7.1: Floating Input Dialog`
@@ -257,4 +276,6 @@ This matrix maps how the minimalist wizard's functional lifecycle processes user
 | **`FR-6.3`** | Completions & Imports | `:Jam imports` for organise | Completions + import insertion via standard LSP; classpath resolved by jdtls itself |
 | **`FR-7.1`** | Floating Input | Keyboard: `<CR>` confirm, `<Esc>` cancel | Replaces `vim.ui.input`; centered floating window, insert mode, rounded border |
 | **`FR-7.2`** | Floating Selection | Keyboard: `j`/`k` navigate, `<CR>` confirm, `<Esc>`/`q` cancel | Replaces `vim.ui.select`; centered floating window, first item pre-highlighted |
+| **`FR-8.1`** | Output Dialog | Keyboard: `q`/`<Esc>` dismiss, normal scrolling | Replaces bottom split; centered 80% floating window with title and auto-scroll |
+| **`FR-8.2`** | ANSI Stripping | None required | Automatically strips `ESC[…m` sequences and `\r` from all streamed output |
 
